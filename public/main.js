@@ -64,12 +64,21 @@ function initEditor() {
 
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      if (data.type === "init") editor.setValue(data.code);
-      else if (data.type === "code" && editor.getValue() !== data.code)
+      if (data.type === "init") {
         editor.setValue(data.code);
-      else if (data.type === "output")
+      } else if (data.type === "code" && editor.getValue() !== data.code) {
+        // Save current selection
+        const selection = editor.getSelection();
+        editor.setValue(data.code);
+        // Try to restore selection if editor is not readOnly
+        if (!editor.getOption && !adminEditing) {
+          editor.setSelection(selection);
+        } else if (!adminEditing) {
+          editor.setSelection(selection);
+        }
+      } else if (data.type === "output") {
         document.getElementById("output").textContent = data.output;
-      else if (data.type === "admin_editing") {
+      } else if (data.type === "admin_editing") {
         adminEditing = data.editing;
         updateEditorLock();
       }
