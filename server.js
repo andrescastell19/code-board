@@ -22,6 +22,7 @@ const users = {
 };
 
 let currentCode = '';
+let adminEditing = false;
 
 app.post('/login', (req, res) => {
   const { user, pass } = req.body;
@@ -73,6 +74,13 @@ wss.on('connection', (ws) => {
       } catch (e) {
         ws.send(JSON.stringify({ type: 'output', output: e.message }));
       }
+    } else if (data.type === 'admin_editing') {
+      adminEditing = data.editing;
+      wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify({ type: 'admin_editing', editing: adminEditing }));
+        }
+      });
     }
   });
 });

@@ -1,6 +1,10 @@
 let editor;
 let socket;
 
+let isAdmin = false;
+let adminEditing = false;
+let currentUser = null;
+
 function login() {
   const user = document.getElementById("user").value;
   const pass = document.getElementById("pass").value;
@@ -15,6 +19,8 @@ function login() {
       if (!res.ok) throw new Error("Login inválido");
       document.getElementById("login").style.display = "none";
       const obj = await res.json();
+      currentUser = obj.user;
+      isAdmin = obj.user === "admin";
       if (obj.user === "dev") {
         document.getElementById("run").style.display = "none";
         document.getElementById("errors").style.display = "none";
@@ -25,7 +31,7 @@ function login() {
 }
 
 function initEditor() {
-  socket = new WebSocket(`wss://${location.host}`);
+  socket = new WebSocket(`ws://${location.host}`);
   require.config({
     paths: { vs: "https://unpkg.com/monaco-editor@latest/min/vs" },
   });
@@ -35,18 +41,49 @@ function initEditor() {
       language: "javascript",
       theme: "vs-dark",
       automaticLayout: true,
+      readOnly: false,
     });
+
+    // Botón de bloqueo solo para admin
+    if (isAdmin) {
+      let lockBtn = document.createElement('button');
+      lockBtn.id = 'lock-btn';
+      lockBtn.textContent = 'Bloquear edición DEV';
+      lockBtn.style = 'padding:10px;background:#c00;color:#fff;border:none;cursor:pointer;margin:10px;';
+      lockBtn.onclick = function () {
+        adminEditing = !adminEditing;
+        socket.send(JSON.stringify({ type: "admin_editing", editing: adminEditing }));
+        updateLockBtn();
+      };
+      document.body.insertBefore(lockBtn, document.getElementById("editor"));
+      function updateLockBtn() {
+        lockBtn.textContent = adminEditing ? 'Desbloquear edición DEV' : 'Bloquear edición DEV';
+        lockBtn.style.background = adminEditing ? '#888' : '#c00';
+      }
+    }
 
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
       if (data.type === "init") editor.setValue(data.code);
       else if (data.type === "code" && editor.getValue() !== data.code)
-        setTimeout(() => {
-          editor.setValue(data.code);
-        }, 500);
+        editor.setValue(data.code);
       else if (data.type === "output")
         document.getElementById("output").textContent = data.output;
+      else if (data.type === "admin_editing") {
+        adminEditing = data.editing;
+        updateEditorLock();
+      }
     };
+
+    function updateEditorLock() {
+      if (!isAdmin && adminEditing) {
+        editor.updateOptions({ readOnly: true });
+        editor.getContainerDomNode().style.opacity = 0.7;
+      } else {
+        editor.updateOptions({ readOnly: false });
+        editor.getContainerDomNode().style.opacity = 1;
+      }
+    }
 
     editor.onDidChangeModelContent(() => {
       const code = editor.getValue();
