@@ -25,7 +25,7 @@ function login() {
 }
 
 function initEditor() {
-  socket = new WebSocket(`ws://${location.host}`);
+  socket = new WebSocket(`wss://${location.host}`);
   require.config({
     paths: { vs: "https://unpkg.com/monaco-editor@latest/min/vs" },
   });
