@@ -14,11 +14,11 @@ function login() {
     .then(async (res) => {
       if (!res.ok) throw new Error("Login inválido");
       document.getElementById("login").style.display = "none";
-      // const obj = await res.json();
-      // if (obj.user === "dev") {
-      //   document.getElementById("run").style.display = "none";
-      //   document.getElementById("errors").style.display = "none";
-      // }
+      const obj = await res.json();
+      if (obj.user === "dev") {
+        document.getElementById("run").style.display = "none";
+        document.getElementById("errors").style.display = "none";
+      }
       initEditor();
     })
     .catch((err) => alert(err.message));
