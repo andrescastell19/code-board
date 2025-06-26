@@ -67,6 +67,10 @@ function initEditor() {
       }
     }
 
+    // Flag para saber si el dev está editando
+    let devEditing = false;
+    let devEditTimeout = null;
+
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
       if (data.type === "init") {
@@ -86,11 +90,19 @@ function initEditor() {
       } else if (data.type === "admin_editing") {
         adminEditing = data.editing;
         updateEditorLock();
+      } else if (data.type === "dev_editing") {
+        devEditing = data.editing;
+        updateEditorLock();
       }
     };
 
     function updateEditorLock() {
+      // Si el admin bloquea, el dev no puede editar
       if (!isAdmin && adminEditing) {
+        editor.updateOptions({ readOnly: true });
+        editor.getContainerDomNode().style.opacity = 0.7;
+      // Si el dev está editando, el admin no puede editar
+      } else if (isAdmin && devEditing) {
         editor.updateOptions({ readOnly: true });
         editor.getContainerDomNode().style.opacity = 0.7;
       } else {
@@ -102,9 +114,20 @@ function initEditor() {
     // Debounce para sincronización de cambios
     let syncTimeout = null;
     editor.onDidChangeModelContent(() => {
-      // Solo sincroniza si NO es admin con bloqueo activo
-      if (isAdmin && adminEditing) {
-        // No sincronizar mientras el admin está editando (bloqueo activo)
+      // Si el dev está editando, notificar a todos (incluido el admin)
+      if (!isAdmin) {
+        devEditing = true;
+        socket.send(JSON.stringify({ type: "dev_editing", editing: true }));
+        clearTimeout(devEditTimeout);
+        devEditTimeout = setTimeout(() => {
+          devEditing = false;
+          socket.send(JSON.stringify({ type: "dev_editing", editing: false }));
+          updateEditorLock();
+        }, 1200); // 1.2s sin escribir = dev deja de editar
+      }
+      // Solo sincroniza si NO es admin con bloqueo activo y NO es admin bloqueado por dev
+      if ((isAdmin && adminEditing) || (isAdmin && devEditing)) {
+        // No sincronizar mientras el admin está editando o dev está editando
         return;
       }
       // Si es admin y desbloquea, o si es dev, sincroniza con debounce

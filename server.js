@@ -54,6 +54,7 @@ server.on('upgrade', (req, socket, head) => {
   }
 });
 
+
 wss.on('connection', (ws) => {
   ws.send(JSON.stringify({ type: 'init', code: currentCode }));
 
@@ -79,6 +80,12 @@ wss.on('connection', (ws) => {
       wss.clients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(JSON.stringify({ type: 'admin_editing', editing: adminEditing }));
+        }
+      });
+    } else if (data.type === 'dev_editing') {
+      wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify({ type: 'dev_editing', editing: data.editing }));
         }
       });
     }
