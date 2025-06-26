@@ -14,7 +14,7 @@ const SECRET = 'clave_super_secreta';
 
 app.use(cookieParser());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, '../public')));
 
 const users = {
   admin: bcrypt.hashSync('12345', 8),

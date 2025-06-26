@@ -1,0 +1,29 @@
+/* Estilos base para el editor colaborativo */
+body {
+  background: #181818;
+  color: #fff;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+#editor {
+  width: 90vw;
+  height: 70vh;
+  margin: 30px auto 10px auto;
+  border-radius: 8px;
+  box-shadow: 0 2px 16px #0008;
+}
+#output, #errors {
+  background: #222;
+  color: #f88;
+  padding: 10px;
+  border-radius: 4px;
+  margin: 10px auto;
+  width: 90vw;
+  min-height: 24px;
+  font-size: 1rem;
+}
+button {
+  font-size: 1rem;
+  border-radius: 4px;
+}
