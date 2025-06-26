@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Live Code Editor</title>
+  <style>
+    body { margin: 0; font-family: sans-serif; background: #1e1e1e; color: white; }
+    #editor { height: 70vh; width: 100vw; }
+    #errors, #output { padding: 10px; font-family: monospace; background: #222; }
+    #login { display: flex; gap: 5px; padding: 10px; background: #111; }
+    #login input { padding: 5px; }
+    #run { padding: 10px; background: #444; color: white; cursor: pointer; border: none; }
+  </style>
+  <script src="https://unpkg.com/monaco-editor@latest/min/vs/loader.js"></script>
+</head>
+<body>
+  <div id="login">
+    <input type="text" id="user" placeholder="Usuario" />
+    <input type="password" id="pass" placeholder="Contraseña" />
+    <button onclick="login()">Login</button>
+  </div>
+  <div id="editor"></div>
+  <button id="run">Ejecutar</button>
+  <div id="errors"></div>
+  <pre id="output"></pre>
+  <script src="main.js"></script>
+</body>
+</html>
