@@ -54,6 +54,11 @@ function initEditor() {
         adminEditing = !adminEditing;
         socket.send(JSON.stringify({ type: "admin_editing", editing: adminEditing }));
         updateLockBtn();
+        // Si se desbloquea, sincroniza el código actual con todos
+        if (!adminEditing) {
+          const code = editor.getValue();
+          socket.send(JSON.stringify({ type: "code", code }));
+        }
       };
       document.body.insertBefore(lockBtn, document.getElementById("editor"));
       function updateLockBtn() {
@@ -94,9 +99,20 @@ function initEditor() {
       }
     }
 
+    // Debounce para sincronización de cambios
+    let syncTimeout = null;
     editor.onDidChangeModelContent(() => {
-      const code = editor.getValue();
-      socket.send(JSON.stringify({ type: "code", code }));
+      // Solo sincroniza si NO es admin con bloqueo activo
+      if (isAdmin && adminEditing) {
+        // No sincronizar mientras el admin está editando (bloqueo activo)
+        return;
+      }
+      // Si es admin y desbloquea, o si es dev, sincroniza con debounce
+      clearTimeout(syncTimeout);
+      syncTimeout = setTimeout(() => {
+        const code = editor.getValue();
+        socket.send(JSON.stringify({ type: "code", code }));
+      }, 400); // 400ms debounce
     });
 
     editor.onDidChangeModelDecorations(() => {
