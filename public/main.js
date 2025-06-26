@@ -40,19 +40,11 @@ function initEditor() {
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
       if (data.type === "init") editor.setValue(data.code);
-      else if (data.type === "code") {
-        const current = editor.getValue();
-        if (current !== data.code) {
-          const pos = editor.getPosition();
-          editor.executeEdits(null, [
-            {
-              range: editor.getModel().getFullModelRange(),
-              text: data.code,
-            },
-          ]);
-          editor.setPosition(pos); // intenta mantener el cursor
-        }
-      } else if (data.type === "output")
+      else if (data.type === "code" && editor.getValue() !== data.code)
+        setTimeout(() => {
+          editor.setValue(data.code);
+        }, 500);
+      else if (data.type === "output")
         document.getElementById("output").textContent = data.output;
     };
 
