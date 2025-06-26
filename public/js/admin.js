@@ -1,19 +1,16 @@
 
+
+import { createMonacoEditor, setupEditorEvents, handleSocketMessages } from './editorCommon.js';
+
 let editor;
 let socket;
 let adminEditing = false;
+let devEditing = false;
 
 window.addEventListener('DOMContentLoaded', () => {
-  initEditor();
-});
-
-function initEditor() {
   const wsProtocol = location.protocol === 'https:' ? 'wss' : 'ws';
   socket = new WebSocket(`${wsProtocol}://${location.host}`);
-  require.config({
-    paths: { vs: "https://unpkg.com/monaco-editor@latest/min/vs" },
-  });
-  require(["vs/editor/editor.main"], function () {
+  createMonacoEditor(() => {
     editor = monaco.editor.create(document.getElementById("editor"), {
       value: "",
       language: "javascript",
@@ -22,12 +19,14 @@ function initEditor() {
       readOnly: false,
     });
 
+    // Botón de bloqueo solo para admin
     let lockBtn = document.createElement('button');
     lockBtn.id = 'lock-btn';
     lockBtn.textContent = 'Bloquear edición DEV';
     lockBtn.style = 'padding:10px;background:#c00;color:#fff;border:none;cursor:pointer;margin:10px;';
     lockBtn.onclick = function () {
       adminEditing = !adminEditing;
+      state.adminEditing = adminEditing;
       socket.send(JSON.stringify({ type: "admin_editing", editing: adminEditing }));
       updateLockBtn();
       if (!adminEditing) {
@@ -41,29 +40,11 @@ function initEditor() {
       lockBtn.style.background = adminEditing ? '#888' : '#c00';
     }
 
-    let devEditing = false;
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === "init") {
-        editor.setValue(data.code);
-      } else if (data.type === "code" && editor.getValue() !== data.code) {
-        const selection = editor.getSelection();
-        editor.setValue(data.code);
-        if (!adminEditing && !devEditing) editor.setSelection(selection);
-      } else if (data.type === "output") {
-        document.getElementById("output").textContent = data.output;
-      } else if (data.type === "admin_editing") {
-        adminEditing = data.editing;
-        updateEditorLock();
-      } else if (data.type === "dev_editing") {
-        devEditing = data.editing;
-        updateEditorLock();
-      }
-    };
+    // Estado compartido
+    const state = { adminEditing, devEditing };
 
     function updateEditorLock() {
-      // El editor de admin solo se deshabilita si dev está editando y admin NO está editando
-      if (devEditing && !adminEditing) {
+      if (state.devEditing && !state.adminEditing) {
         editor.updateOptions({ readOnly: true });
         editor.getContainerDomNode().style.opacity = 0.7;
       } else {
@@ -72,29 +53,17 @@ function initEditor() {
       }
     }
 
+    handleSocketMessages(editor, socket, state, updateEditorLock, 'admin');
+    setupEditorEvents(editor, socket, () => state.adminEditing, v => { state.adminEditing = v; }, 'admin');
+
     let syncTimeout = null;
     editor.onDidChangeModelContent(() => {
-      // Si dev está editando y admin NO está editando, bloquear edición
-      if (devEditing && !adminEditing) return;
+      if (state.devEditing && !state.adminEditing) return;
       clearTimeout(syncTimeout);
       syncTimeout = setTimeout(() => {
         const code = editor.getValue();
         socket.send(JSON.stringify({ type: "code", code }));
       }, 400);
     });
-
-    editor.onDidChangeModelDecorations(() => {
-      const markers =
-        monaco.editor.getModelMarkers({ resource: editor.getModel().uri }) ||
-        [];
-      document.getElementById("errors").innerHTML = markers
-        .map((m) => `${m.message} (línea ${m.startLineNumber})`)
-        .join("<br>");
-    });
-
-    document.getElementById("run").onclick = () => {
-      const code = editor.getValue();
-      socket.send(JSON.stringify({ type: "run", code }));
-    };
   });
-}
+});
