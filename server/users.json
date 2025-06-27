@@ -1,0 +1,19 @@
+{
+  "users": [
+    {
+      "user": "admin",
+      "passHash": "$2a$08$.1XCoWIvSmkLgo30dA2wjuvaVt9IfxItSGPI/NidhBVRPPOazRilK",
+      "role": "admin"
+    },
+    {
+      "user": "dev",
+      "passHash": "$2a$08$iUqZL2dGf9VUfg.jLRfP7unmkIFgHR2zItkZDiBQ/TLC7VgLK0voa",
+      "role": "dev"
+    },
+    {
+      "user": "observer",
+      "passHash": "$2a$08$rsZhA1hlieYz18k2saLmO..DAn9shcyP/CmzrWIUJC/Qf.zo1AP/O",
+      "role": "observer"
+    }
+  ]
+}

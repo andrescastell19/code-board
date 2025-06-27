@@ -17,11 +17,17 @@
   <!-- El login ya no es necesario aquí, lo gestiona index.html -->
   <div id="editor"></div>
   <button id="run">Ejecutar</button>
+  <button id="go-register" style="margin-left:10px;">Registrar usuario</button>
   <div id="errors"></div>
   <pre id="output"></pre>
   <link rel="stylesheet" href="css/styles.css">
   <script src="js/auth.js"></script>
   <script type="module" src="js/admin.js"></script>
+  <script>
+    document.getElementById('go-register').onclick = function() {
+      window.location.href = 'register.html';
+    };
+  </script>
   <!-- Ya no se fuerza usuario admin aquí, login centralizado -->
 </body>
 </html>

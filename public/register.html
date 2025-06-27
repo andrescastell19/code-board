@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Registrar Usuario</title>
+  <style>
+    body { background: #181818; color: #fff; font-family: sans-serif; }
+    form { margin: 40px auto; width: 320px; background: #222; padding: 24px; border-radius: 8px; box-shadow: 0 2px 16px #0008; }
+    input, select, button { width: 100%; margin: 10px 0; padding: 8px; border-radius: 4px; border: none; }
+    button { background: #0a7; color: #fff; font-weight: bold; cursor: pointer; }
+    .msg { margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <form id="registerForm">
+    <h2>Registrar nuevo usuario</h2>
+    <input type="text" id="user" placeholder="Usuario" required />
+    <input type="password" id="pass" placeholder="Contraseña" required />
+    <select id="role" required>
+      <option value="admin">Admin</option>
+      <option value="dev">Dev</option>
+      <option value="observer">Observer</option>
+    </select>
+    <button type="submit">Registrar</button>
+    <div class="msg" id="msg"></div>
+  </form>
+  <script>
+    document.getElementById('registerForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const user = document.getElementById('user').value;
+      const pass = document.getElementById('pass').value;
+      const role = document.getElementById('role').value;
+      const msg = document.getElementById('msg');
+      msg.textContent = '';
+      try {
+        const res = await fetch('/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ user, pass, role })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          msg.style.color = '#0f0';
+          msg.textContent = `Usuario ${data.user} creado como ${data.role}`;
+        } else {
+          msg.style.color = '#f44';
+          msg.textContent = data.error || 'Error al registrar';
+          if (res.status === 401 || res.status === 403) {
+            setTimeout(() => window.location.href = 'index.html', 1500);
+          }
+        }
+      } catch (err) {
+        msg.style.color = '#f44';
+        msg.textContent = 'Error de red';
+      }
+    };
+  </script>
+</body>
+</html>
