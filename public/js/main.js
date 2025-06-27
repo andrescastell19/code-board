@@ -15,6 +15,8 @@ function login() {
         window.location.href = "admin.html";
       } else if (obj.user === "dev") {
         window.location.href = "dev.html";
+      } else if (obj.user === "observer") {
+        window.location.href = "observer.html";
       } else {
         alert("Rol desconocido");
       }

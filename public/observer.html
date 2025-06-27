@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Observer Code Board</title>
+  <style>
+    body { margin: 0; font-family: sans-serif; background: #1e1e1e; color: white; }
+    #editor { height: 70vh; width: 100vw; }
+    #errors, #output { padding: 10px; font-family: monospace; background: #222; }
+    #run { display: none; }
+  </style>
+  <script src="https://unpkg.com/monaco-editor@latest/min/vs/loader.js"></script>
+</head>
+<body>
+  <div id="editor"></div>
+  <div id="errors"></div>
+  <pre id="output"></pre>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/auth.js"></script>
+  <script type="module" src="js/observer.js"></script>
+</body>
+</html>

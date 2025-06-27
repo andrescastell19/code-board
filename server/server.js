@@ -18,7 +18,8 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 const users = {
   admin: bcrypt.hashSync('12345', 8),
-  dev: bcrypt.hashSync('12345', 8)
+  dev: bcrypt.hashSync('12345', 8),
+  observer: bcrypt.hashSync('12345', 8)
 };
 
 let currentCode = '';
