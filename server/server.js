@@ -67,7 +67,11 @@ app.post('/login', async (req, res) => {
     const u = await findUser(user);
     if (u && bcrypt.compareSync(pass, u.passHash)) {
         const token = jwt.sign({ user }, SECRET, { expiresIn: '1h' });
-        res.cookie('token', token, { httpOnly: false }).json({ success: true, user: u.role });
+        res.cookie('token', token, {
+            httpOnly: false,
+            sameSite: 'None',
+            secure: true
+        }).json({ success: true, user: u.role });
     } else {
         res.status(401).json({ error: 'Invalid credentials' });
     }
