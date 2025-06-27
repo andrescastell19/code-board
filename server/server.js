@@ -7,7 +7,10 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { VM } = require('vm2');
 
+
+const allowCors = require('./allowCors');
 const app = express();
+app.use(allowCors);
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ noServer: true });
 const SECRET = 'clave_super_secreta';
@@ -63,7 +66,7 @@ app.post('/login', async (req, res) => {
     const u = await findUser(user);
     if (u && bcrypt.compareSync(pass, u.passHash)) {
         const token = jwt.sign({ user }, SECRET, { expiresIn: '1h' });
-        res.cookie('token', token, { httpOnly: true }).json({ success: true, user: u.role });
+        res.cookie('token', token, { httpOnly: false }).json({ success: true, user: u.role });
     } else {
         res.status(401).json({ error: 'Invalid credentials' });
     }
@@ -77,7 +80,17 @@ const getCookie = (name, cookieHeader) => {
 };
 
 server.on('upgrade', (req, socket, head) => {
-    const token = getCookie('token', req.headers.cookie || '');
+    // Permitir cualquier origen para WebSocket (solo desarrollo)
+    // ¡No usar en producción!
+    // Obtener token de cookie o query string
+    let token = getCookie('token', req.headers.cookie || '');
+    if (!token) {
+        // Buscar en query string
+        const url = require('url');
+        const query = url.parse(req.url, true).query;
+        token = query.token;
+    }
+    console.log('WebSocket upgrade: token recibido:', token);
     try {
         const decoded = jwt.verify(token, SECRET);
         wss.handleUpgrade(req, socket, head, ws => {
@@ -85,12 +98,14 @@ server.on('upgrade', (req, socket, head) => {
             wss.emit('connection', ws, req);
         });
     } catch (err) {
+        console.log('WebSocket auth failed:', err.message, 'Token:', token);
         socket.destroy();
     }
 });
 
 
 wss.on('connection', (ws) => {
+    console.log('WebSocket conectado:', ws.user);
     ws.send(JSON.stringify({ type: 'init', code: currentCode }));
 
     ws.on('message', (msg) => {
@@ -127,7 +142,7 @@ wss.on('connection', (ws) => {
     });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3002;
 server.listen(PORT, () => {
     console.log(`Servidor corriendo en puerto ${PORT}`);
 });
