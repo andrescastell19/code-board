@@ -71,7 +71,7 @@ app.post('/login', async (req, res) => {
             httpOnly: false,
             sameSite: 'None',
             secure: true
-        }).json({ success: true, user: u.role });
+        }).json({ success: true, user: u.role, token });
     } else {
         res.status(401).json({ error: 'Invalid credentials' });
     }
