@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
@@ -13,7 +14,7 @@ const app = express();
 app.use(allowCors);
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ noServer: true });
-const SECRET = 'clave_super_secreta';
+const SECRET = process.env.SECRET || 'clave_super_secreta';
 
 app.use(cookieParser());
 app.use(express.json());
@@ -145,4 +146,5 @@ wss.on('connection', (ws) => {
 const PORT = process.env.PORT || 3002;
 server.listen(PORT, () => {
     console.log(`Servidor corriendo en puerto ${PORT}`);
+    console.log('SECRET:', SECRET ? '[OK]' : '[VACÍO]');
 });
