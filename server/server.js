@@ -59,8 +59,47 @@ app.post('/register', async (req, res) => {
     res.json({ success: true, user, role });
 });
 
-let currentCode = '';
-let adminEditing = false;
+
+// Room state: { [roomId]: { code: string, adminEditing: bool } }
+const rooms = {};
+
+
+// Nuevo endpoint para validar existencia de roomId
+app.get('/room-exists', (req, res) => {
+    const roomId = req.query.roomId;
+    if (!roomId) {
+        return res.status(400).json({ error: 'Falta roomId' });
+    }
+    if (!rooms[roomId]) {
+        return res.status(404).json({ error: 'Room no existe' });
+    }
+    res.json({ exists: true });
+});
+
+// Endpoint para crear un nuevo room, solo admin puede
+app.post('/create-room', async (req, res) => {
+    const token = req.cookies.token || req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'No autenticado' });
+    let decoded;
+    try {
+        decoded = jwt.verify(token, SECRET);
+    } catch {
+        return res.status(401).json({ error: 'Token inválido' });
+    }
+    const userObj = await findUser(decoded.user);
+    if (!userObj || userObj.role !== 'admin') {
+        return res.status(403).json({ error: 'Solo admin puede crear rooms' });
+    }
+    const { roomId } = req.body;
+    if (!roomId) {
+        return res.status(400).json({ error: 'Falta roomId' });
+    }
+    if (rooms[roomId]) {
+        return res.status(409).json({ error: 'Room ya existe' });
+    }
+    rooms[roomId] = { code: '', adminEditing: false };
+    res.json({ success: true, roomId });
+});
 
 app.post('/login', async (req, res) => {
     const { user, pass } = req.body;
@@ -84,22 +123,29 @@ const getCookie = (name, cookieHeader) => {
     return null;
 };
 
+
 server.on('upgrade', (req, socket, head) => {
     // Permitir cualquier origen para WebSocket (solo desarrollo)
     // ¡No usar en producción!
     // Obtener token de cookie o query string
     let token = getCookie('token', req.headers.cookie || '');
+    let roomId = 'default';
+    const url = require('url');
+    const parsedUrl = url.parse(req.url, true);
     if (!token) {
         // Buscar en query string
-        const url = require('url');
-        const query = url.parse(req.url, true).query;
-        token = query.token;
+        token = parsedUrl.query.token;
     }
-    console.log('WebSocket upgrade: token recibido:', token);
+    // Obtener roomId de query string
+    if (parsedUrl.query && parsedUrl.query.roomId) {
+        roomId = parsedUrl.query.roomId;
+    }
+    console.log('WebSocket upgrade: token recibido:', token, 'roomId:', roomId);
     try {
         const decoded = jwt.verify(token, SECRET);
         wss.handleUpgrade(req, socket, head, ws => {
             ws.user = decoded.user;
+            ws.roomId = roomId;
             wss.emit('connection', ws, req);
         });
     } catch (err) {
@@ -109,16 +155,19 @@ server.on('upgrade', (req, socket, head) => {
 });
 
 
-wss.on('connection', (ws) => {
-    console.log('WebSocket conectado:', ws.user);
-    ws.send(JSON.stringify({ type: 'init', code: currentCode }));
+wss.on('connection', (ws, req) => {
+    // Cada conexión ya tiene ws.roomId asignado en handleUpgrade
+    const roomId = ws.roomId || 'default';
+    if (!rooms[roomId]) rooms[roomId] = { code: '', adminEditing: false };
+    console.log(`WebSocket conectado: ${ws.user} en room: ${roomId}`);
+    ws.send(JSON.stringify({ type: 'init', code: rooms[roomId].code }));
 
     ws.on('message', (msg) => {
         const data = JSON.parse(msg);
         if (data.type === 'code') {
-            currentCode = data.code;
+            rooms[roomId].code = data.code;
             wss.clients.forEach(client => {
-                if (client !== ws && client.readyState === WebSocket.OPEN) {
+                if (client !== ws && client.readyState === WebSocket.OPEN && client.roomId === roomId) {
                     client.send(JSON.stringify({ type: 'code', code: data.code }));
                 }
             });
@@ -131,15 +180,15 @@ wss.on('connection', (ws) => {
                 ws.send(JSON.stringify({ type: 'output', output: e.message }));
             }
         } else if (data.type === 'admin_editing') {
-            adminEditing = data.editing;
+            rooms[roomId].adminEditing = data.editing;
             wss.clients.forEach(client => {
-                if (client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify({ type: 'admin_editing', editing: adminEditing }));
+                if (client.readyState === WebSocket.OPEN && client.roomId === roomId) {
+                    client.send(JSON.stringify({ type: 'admin_editing', editing: rooms[roomId].adminEditing }));
                 }
             });
         } else if (data.type === 'dev_editing') {
             wss.clients.forEach(client => {
-                if (client.readyState === WebSocket.OPEN) {
+                if (client.readyState === WebSocket.OPEN && client.roomId === roomId) {
                     client.send(JSON.stringify({ type: 'dev_editing', editing: data.editing }));
                 }
             });
